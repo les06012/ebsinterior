@@ -22,31 +22,24 @@ export const About = () => {
           <h3 className="text-2xl md:text-4xl font-bold leading-tight text-sage-800 break-keep">
             공간, 저마다 가치의 답을<br className="hidden md:block" /> 제시하는 스튜디오
           </h3>
-          <div className="text-[13px] md:text-base text-sage-600 leading-relaxed space-y-5 md:space-y-6 max-w-3xl mx-auto break-keep px-2 md:px-0">
+          <div className="text-[13px] sm:text-[14px] md:text-base text-sage-600 leading-[1.8] space-y-6 md:space-y-8 max-w-3xl mx-auto break-keep px-4 md:px-0 text-center">
             <p>
-              우리는 상업공간, 주거공간, 사무공간, 숙박시설 등<br className="hidden md:block" />
-              다양한 유형의 공간을 설계하고 시공하는 건축 전문 회사입니다.
+              우리는 상업공간, 주거공간, 사무공간, 숙박시설 등 다양한 유형의 공간을 설계하고 시공하는 건축 전문 회사입니다.
             </p>
             <p>
-              공간의 규모나 분야보다 먼저 고려하는 것은 이 공간이 어떻게 사용되는가입니다.<br className="hidden md:block" />
-              각 공간이 가진 목적과 사용자의 행동, 운영 방식까지 분석한 뒤 설계와 시공을 진행합니다.
+              공간의 규모나 분야보다 먼저 고려하는 것은 이 공간이 어떻게 사용되는가입니다.<br/ > 각 공간이 가진 목적과 사용자의 행동, 운영 방식까지 분석한 뒤 설계와 시공을 진행합니다.
             </p>
             <p>
-              상업공간에서는 브랜드와 동선, 주거공간에서는 생활의 흐름과 유지 관리,<br className="hidden md:block" />
-              사무공간에서는 업무 효율과 확장성, 숙박공간에서는 체류 경험과 반복 사용을 기준으로 접근합니다.
+              상업공간에서는 브랜드와 동선, 주거공간에서는 생활의 흐름과 유지 관리, 사무공간에서는 업무 효율과 확장성, 숙박공간에서는 체류 경험과 반복 사용을 기준으로 접근합니다.
             </p>
             <p>
-              모든 프로젝트는 동일한 스타일을 적용하기보다,<br className="hidden md:block" />
-              공간의 성격에 맞는 합리적인 구조와 마감을 찾는 데 집중합니다.
+              모든 프로젝트는 동일한 스타일을 적용하기보다, 공간의 성격에 맞는 합리적인 구조와 마감을 찾는 데 집중합니다.
             </p>
             <p>
-              우리는 보여지기 위한 건축보다, 사용하면서 신뢰가 쌓이는 공간을 목표로 합니다.<br className="hidden md:block" />
-              설계 단계에서부터 시공 이후의 관리까지 고려하며,<br className="hidden md:block" />
-              불필요한 요소를 줄이고 필요한 기능을 명확히 드러내는 방식으로 작업합니다.
+              우리는 보여지기 위한 건축보다, 사용하면서 신뢰가 쌓이는 공간을 목표로 합니다. 설계 단계에서부터 시공 이후의 관리까지 고려하며, 불필요한 요소를 줄이고 필요한 기능을 명확히 드러내는 방식으로 작업합니다.
             </p>
-            <p className="text-[15px] md:text-lg font-medium text-sage-900 pt-2 md:pt-4">
-              공간이 완성되는 순간보다,<br className="hidden md:block" />
-              시간이 지나도 불편하지 않은 공간을 만드는 것이 우리의 기준입니다.
+            <p className="text-[15px] sm:text-[16px] md:text-lg font-bold text-sage-900 pt-4 md:pt-6">
+              공간이 완성되는 순간보다, 시간이 지나도 불편하지 않은 공간을 만드는 것이 우리의 기준입니다.
             </p>
           </div>
         </motion.div>

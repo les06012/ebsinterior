@@ -44,35 +44,35 @@ export const Contact = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             {/* Map Placeholder */}
-            <div className="aspect-video bg-sage-200 rounded-2xl md:rounded-3xl overflow-hidden relative">
+            <div className="aspect-square md:aspect-video bg-sage-200 rounded-2xl md:rounded-3xl overflow-hidden relative">
               <img 
                 src="https://picsum.photos/seed/map/1200/800" 
                 alt="Map" 
                 className="w-full h-full object-cover opacity-50 grayscale"
                 referrerPolicy="no-referrer"
               />
-              <div className="absolute inset-0 p-2 md:p-8 flex flex-col gap-2 md:gap-4 justify-center items-center">
+              <div className="absolute inset-0 p-4 md:p-8 flex flex-col gap-3 md:gap-4 justify-center items-center z-10">
                 <a 
                   href={`https://map.naver.com/p/search/${encodeURIComponent('경기도 평택시 관동길 91-99')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-white/90 backdrop-blur-sm px-4 py-3 md:p-8 rounded-xl md:rounded-2xl shadow-lg border border-white/50 w-fit max-w-[90%] md:w-full md:max-w-md text-center hover:bg-white transition-colors cursor-pointer block"
+                  className="bg-white/90 backdrop-blur-sm px-4 py-4 md:p-8 rounded-xl md:rounded-2xl shadow-lg border border-white/50 w-[85%] md:w-full md:max-w-md text-center hover:bg-white transition-colors cursor-pointer block relative z-20"
                 >
-                  <h4 className="font-bold text-sm md:text-lg text-sage-900 mb-0.5 md:mb-2 flex items-center justify-center gap-1 md:gap-2">
-                    <MapPin className="w-3.5 h-3.5 md:w-5 md:h-5 text-sage-500" /> 에바스
+                  <h4 className="font-bold text-base md:text-lg text-sage-900 mb-1 md:mb-2 flex items-center justify-center gap-1 md:gap-2">
+                    <MapPin className="w-4 h-4 md:w-5 md:h-5 text-sage-500" /> 에바스
                   </h4>
-                  <p className="text-[11px] sm:text-xs md:text-base text-sage-600 whitespace-nowrap">경기도 평택시 관동길 91-99</p>
+                  <p className="text-xs md:text-base text-sage-600 whitespace-nowrap">경기도 평택시 관동길 91-99</p>
                 </a>
                 <a 
                   href={`https://map.naver.com/p/search/${encodeURIComponent('경기도 평택시 관광특구로36')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-white/90 backdrop-blur-sm px-4 py-3 md:p-8 rounded-xl md:rounded-2xl shadow-lg border border-white/50 w-fit max-w-[90%] md:w-full md:max-w-md text-center hover:bg-white transition-colors cursor-pointer block"
+                  className="bg-white/90 backdrop-blur-sm px-4 py-4 md:p-8 rounded-xl md:rounded-2xl shadow-lg border border-white/50 w-[85%] md:w-full md:max-w-md text-center hover:bg-white transition-colors cursor-pointer block relative z-20"
                 >
-                  <h4 className="font-bold text-sm md:text-lg text-sage-900 mb-0.5 md:mb-2 flex items-center justify-center gap-1 md:gap-2">
-                    <MapPin className="w-3.5 h-3.5 md:w-5 md:h-5 text-sage-500" /> 디자인센터
+                  <h4 className="font-bold text-base md:text-lg text-sage-900 mb-1 md:mb-2 flex items-center justify-center gap-1 md:gap-2">
+                    <MapPin className="w-4 h-4 md:w-5 md:h-5 text-sage-500" /> 디자인센터
                   </h4>
-                  <p className="text-[11px] sm:text-xs md:text-base text-sage-600 whitespace-nowrap">경기도 평택시 관광특구로36</p>
+                  <p className="text-xs md:text-base text-sage-600 whitespace-nowrap">경기도 평택시 관광특구로36</p>
                 </a>
               </div>
             </div>
