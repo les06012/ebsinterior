@@ -14,6 +14,8 @@ export const QA = () => {
   const [passwordPromptPost, setPasswordPromptPost] = useState<QAPost | null>(null);
   const [passwordInput, setPasswordInput] = useState('');
   const [replyInput, setReplyInput] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Load posts from local storage
   const [posts, setPosts] = useState<QAPost[]>(() => {
@@ -78,6 +80,24 @@ export const QA = () => {
     setSelectedPost(updatedPost);
     setReplyInput('');
   };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = searchInput.trim();
+    
+    if (query) {
+      const filtered = posts.filter(post => post.title.includes(query));
+      if (filtered.length === 0) {
+        alert('검색하신 내용이 존재하지 않습니다.');
+        setSearchInput('');
+        setSearchQuery('');
+        return;
+      }
+    }
+    setSearchQuery(query);
+  };
+
+  const filteredPosts = posts.filter(post => post.title.includes(searchQuery));
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-4 relative">
@@ -148,10 +168,18 @@ export const QA = () => {
       ) : (
         <div className="space-y-6">
           <div className="flex gap-2 items-center">
-            <div className="relative flex-1">
-              <input type="text" className="w-full pl-9 md:pl-10 pr-4 py-2 bg-white border border-sage-200 rounded-lg text-xs md:text-sm" placeholder="검색어를 입력하세요" />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-sage-400 w-3.5 h-3.5 md:w-4 md:h-4" />
-            </div>
+            <form onSubmit={handleSearch} className="relative flex-1">
+              <input 
+                type="text" 
+                className="w-full pl-9 md:pl-10 pr-4 py-2 bg-white border border-sage-200 rounded-lg text-xs md:text-sm" 
+                placeholder="검색어를 입력하세요" 
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
+              <button type="submit" className="absolute left-3 top-1/2 -translate-y-1/2 text-sage-400 hover:text-sage-600">
+                <Search className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              </button>
+            </form>
             <button 
               onClick={() => setIsWriting(true)}
               className="flex items-center gap-1 md:gap-2 px-3 md:px-6 py-2 bg-sage-800 text-white text-xs md:text-sm font-bold rounded-lg hover:bg-sage-900 transition-colors whitespace-nowrap"
@@ -173,7 +201,7 @@ export const QA = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-sage-50">
-                {posts.map((post) => (
+                {filteredPosts.map((post) => (
                   <tr key={post.id} onClick={() => handlePostClick(post)} className="hover:bg-sage-50 transition-colors cursor-pointer">
                     <td className="px-6 py-4 text-sage-400">{post.id}</td>
                     <td className="px-6 py-4">
@@ -199,7 +227,7 @@ export const QA = () => {
 
           {/* Mobile List View */}
           <div className="md:hidden space-y-4">
-            {posts.map((post) => (
+            {filteredPosts.map((post) => (
               <div key={post.id} onClick={() => handlePostClick(post)} className="bg-white p-5 rounded-xl border border-sage-100 shadow-sm space-y-3 cursor-pointer">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2">
