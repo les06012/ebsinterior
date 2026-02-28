@@ -52,18 +52,28 @@ export const Contact = () => {
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 p-2 md:p-8 flex flex-col gap-2 md:gap-4 justify-center items-center">
-                <div className="bg-white/90 backdrop-blur-sm px-4 py-3 md:p-8 rounded-xl md:rounded-2xl shadow-lg border border-white/50 w-fit max-w-[90%] md:w-full md:max-w-md text-center">
+                <a 
+                  href={`https://map.naver.com/p/search/${encodeURIComponent('경기도 평택시 관동길 91-99')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white/90 backdrop-blur-sm px-4 py-3 md:p-8 rounded-xl md:rounded-2xl shadow-lg border border-white/50 w-fit max-w-[90%] md:w-full md:max-w-md text-center hover:bg-white transition-colors cursor-pointer block"
+                >
                   <h4 className="font-bold text-sm md:text-lg text-sage-900 mb-0.5 md:mb-2 flex items-center justify-center gap-1 md:gap-2">
                     <MapPin className="w-3.5 h-3.5 md:w-5 md:h-5 text-sage-500" /> 에바스
                   </h4>
                   <p className="text-[11px] sm:text-xs md:text-base text-sage-600 whitespace-nowrap">경기도 평택시 관동길 91-99</p>
-                </div>
-                <div className="bg-white/90 backdrop-blur-sm px-4 py-3 md:p-8 rounded-xl md:rounded-2xl shadow-lg border border-white/50 w-fit max-w-[90%] md:w-full md:max-w-md text-center">
+                </a>
+                <a 
+                  href={`https://map.naver.com/p/search/${encodeURIComponent('경기도 평택시 관광특구로36')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white/90 backdrop-blur-sm px-4 py-3 md:p-8 rounded-xl md:rounded-2xl shadow-lg border border-white/50 w-fit max-w-[90%] md:w-full md:max-w-md text-center hover:bg-white transition-colors cursor-pointer block"
+                >
                   <h4 className="font-bold text-sm md:text-lg text-sage-900 mb-0.5 md:mb-2 flex items-center justify-center gap-1 md:gap-2">
                     <MapPin className="w-3.5 h-3.5 md:w-5 md:h-5 text-sage-500" /> 디자인센터
                   </h4>
                   <p className="text-[11px] sm:text-xs md:text-base text-sage-600 whitespace-nowrap">경기도 평택시 관광특구로36</p>
-                </div>
+                </a>
               </div>
             </div>
 
