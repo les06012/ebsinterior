@@ -1,0 +1,7 @@
+{
+  "name": "인테리어 스튜디오 - 인테리어 디자인 & 시공",
+  "description": "공간에 가치를 담는 인테리어 전문 기업 인테리어 스튜디오입니다. 주거, 상업, 숙박 공간 리모델링 전문.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

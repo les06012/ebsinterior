@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-sage-50: #f4f7f4;
+  --color-sage-100: #e8ede8;
+  --color-sage-200: #d1dbd1;
+  --color-sage-300: #b0c0b0;
+  --color-sage-400: #8fa58f;
+  --color-sage-500: #708a70;
+  --color-sage-600: #5a6b5a;
+  --color-sage-700: #4a584a;
+  --color-sage-800: #3a453a;
+  --color-sage-900: #2a312a;
+  
+  --font-sans: "Inter", "Pretendard", system-ui, sans-serif;
+}
+
+body {
+  @apply bg-[#D9E3D0] text-sage-900 font-sans antialiased;
+}
+
+.sidebar-active {
+  @apply text-sage-900 font-semibold border-r-2 border-sage-900;
+}
+
+.markdown-body h1 { @apply text-2xl font-bold mb-4; }
+.markdown-body p { @apply mb-4 leading-relaxed; }
+
