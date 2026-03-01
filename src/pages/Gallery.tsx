@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { SectionTitle, cn } from '../components/Common';
-import { PROJECTS } from '../data/projects';
+import { PROJECTS, getProjects } from '../data/projects';
 import { Project } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { MapPin, Maximize2, Calendar, Tag, ArrowLeft, Phone, Plus, X, Lock } from 'lucide-react';
@@ -15,9 +15,7 @@ export const Gallery = () => {
 
   // Load projects from local storage and merge with static data
   const [projects, setProjects] = useState<Project[]>(() => {
-    const saved = localStorage.getItem('customProjects');
-    const initial = saved ? JSON.parse(saved) : [];
-    return [...PROJECTS, ...initial];
+    return getProjects();
   });
 
   const categories = ['전체', '주거', '상업', '사무', '숙박', '가구'];
@@ -41,7 +39,7 @@ export const Gallery = () => {
     const currentCustom = saved ? JSON.parse(saved) : [];
     const updatedCustom = [...currentCustom, newProject];
     localStorage.setItem('customProjects', JSON.stringify(updatedCustom));
-    setProjects([...PROJECTS, ...updatedCustom]);
+    setProjects(getProjects());
     setIsWriting(false);
   };
 

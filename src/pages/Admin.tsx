@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SectionTitle, cn } from '../components/Common';
 import { QAPost, Project } from '../types';
-import { PROJECTS } from '../data/projects';
+import { PROJECTS, getProjects } from '../data/projects';
 import { motion, AnimatePresence, Reorder } from 'motion/react';
 import { Lock, Plus, Trash2, Image, MessageSquare, LogOut, X, GripVertical, Edit2 } from 'lucide-react';
 
@@ -30,9 +30,7 @@ export const Admin = () => {
     }
 
     // Load Projects
-    const savedProjects = localStorage.getItem('customProjects');
-    const initialProjects = savedProjects ? JSON.parse(savedProjects) : [];
-    setProjects([...PROJECTS, ...initialProjects]);
+    setProjects(getProjects());
 
     // Load QA Posts
     const savedQa = localStorage.getItem('qaPosts_v3');
@@ -115,21 +113,37 @@ export const Admin = () => {
 
     localStorage.setItem('customProjects', JSON.stringify(updatedCustom));
     
-    // Update state: we need to merge static + custom again to reflect changes
-    // But wait, if we added a default project to customProjects, it will appear twice unless we filter.
-    // Let's just update the local state directly for immediate feedback.
-    
-    setProjects(prev => {
-      const exists = prev.some(p => p.id === newProject.id);
-      if (exists) {
-        return prev.map(p => p.id === newProject.id ? newProject : p);
-      }
-      return [...prev, newProject];
-    });
+    // Update state using getProjects to ensure consistency
+    setProjects(getProjects());
 
     setIsWritingProject(false);
     setEditingProject(null);
     alert(editingProject ? '프로젝트가 수정되었습니다.' : '프로젝트가 등록되었습니다.');
+  };
+
+  const handleDeleteProject = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (window.confirm('정말 삭제하시겠습니까?')) {
+      // Add to deletedProjects to prevent static projects from reappearing
+      const savedDeleted = localStorage.getItem('deletedProjects');
+      const deletedProjects = savedDeleted ? JSON.parse(savedDeleted) : [];
+      if (!deletedProjects.includes(id)) {
+        deletedProjects.push(id);
+        localStorage.setItem('deletedProjects', JSON.stringify(deletedProjects));
+      }
+
+      // Remove from customProjects if it's there
+      const saved = localStorage.getItem('customProjects');
+      if (saved) {
+        const currentCustom = JSON.parse(saved);
+        const updatedCustom = currentCustom.filter((p: Project) => p.id !== id);
+        localStorage.setItem('customProjects', JSON.stringify(updatedCustom));
+      }
+
+      // Update state
+      setProjects(getProjects());
+      alert('프로젝트가 삭제되었습니다.');
+    }
   };
 
   // QA Functions
@@ -276,6 +290,7 @@ export const Admin = () => {
                         <th className="p-4 whitespace-nowrap">프로젝트명</th>
                         <th className="p-4 w-32 text-center whitespace-nowrap">위치</th>
                         <th className="p-4 w-24 text-center whitespace-nowrap">면적</th>
+                        <th className="p-4 w-20 text-center whitespace-nowrap">관리</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-sage-100">
@@ -299,6 +314,15 @@ export const Admin = () => {
                           <td className="p-4 font-medium text-sage-900 truncate max-w-[300px]">{p.title}</td>
                           <td className="p-4 text-center text-sage-600 text-sm whitespace-nowrap">{p.location}</td>
                           <td className="p-4 text-center text-sage-500 text-sm whitespace-nowrap">{p.area}</td>
+                          <td className="p-4 text-center">
+                            <button 
+                              onClick={(e) => handleDeleteProject(e, p.id)}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="삭제"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -323,6 +347,13 @@ export const Admin = () => {
                             {p.category}
                           </span>
                         </div>
+                        <button
+                          onClick={(e) => handleDeleteProject(e, p.id)}
+                          className="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm text-red-500 rounded border border-sage-200 hover:bg-red-50 transition-colors"
+                          title="삭제"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                       <div className="p-3">
                         <h3 className="font-bold text-sage-900 mb-1 line-clamp-1">{p.title}</h3>

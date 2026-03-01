@@ -66,6 +66,20 @@ export const PROJECTS: Project[] = [
   }
 ];
 
+export const getProjects = (): Project[] => {
+  const savedProjects = localStorage.getItem('customProjects');
+  const initialProjects = savedProjects ? JSON.parse(savedProjects) : [];
+  
+  const savedDeleted = localStorage.getItem('deletedProjects');
+  const deletedProjects = savedDeleted ? JSON.parse(savedDeleted) : [];
+
+  const projectMap = new Map();
+  PROJECTS.forEach(p => projectMap.set(p.id, p));
+  initialProjects.forEach((p: Project) => projectMap.set(p.id, p));
+  
+  return Array.from(projectMap.values()).filter(p => !deletedProjects.includes(p.id));
+};
+
 export const FAQS: FAQ[] = [
   {
     question: "상담 및 실측은 어떻게 진행되나요?",

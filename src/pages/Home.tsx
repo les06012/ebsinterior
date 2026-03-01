@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ArrowRight, CheckCircle2, Phone } from 'lucide-react';
 import { SectionTitle } from '../components/Common';
-import { PROJECTS } from '../data/projects';
+import { PROJECTS, getProjects } from '../data/projects';
 
 export const Home = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const projectsList = getProjects();
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -127,16 +128,16 @@ export const Home = () => {
           <h2 className="text-3xl font-bold text-sage-900 tracking-tight mb-2">대표 프로젝트</h2>
           <div className="flex justify-between items-center">
             <p className="text-sage-600 text-[11px] sm:text-sm whitespace-nowrap tracking-tighter sm:tracking-normal">최근 진행된 주요 시공 사례입니다.</p>
-            {PROJECTS.length > 0 && (
+            {projectsList.length > 0 && (
               <Link to="/gallery" className="text-sage-600 hover:text-sage-900 text-[11px] sm:text-sm font-medium flex items-center gap-1 whitespace-nowrap">
                 전체보기 <ArrowRight size={14} />
               </Link>
             )}
           </div>
         </div>
-        {PROJECTS.length > 0 ? (
+        {projectsList.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {PROJECTS.slice(0, 3).map((p) => (
+            {projectsList.slice(0, 3).map((p) => (
               <Link key={p.id} to={`/gallery/${p.id}`} className="group">
                 <div className="aspect-[4/3] overflow-hidden rounded-2xl mb-4">
                   <img 
