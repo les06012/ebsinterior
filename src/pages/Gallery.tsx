@@ -4,10 +4,12 @@ import { SectionTitle, cn } from '../components/Common';
 import { PROJECTS, getProjects } from '../data/projects';
 import { Project } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Maximize2, Calendar, Tag, ArrowLeft, Phone, Plus, X, Lock } from 'lucide-react';
+import { MapPin, Maximize2, Calendar, Tag, ArrowLeft, Phone, Plus, X, Lock, Search, Eye, EyeOff } from 'lucide-react';
 
 export const Gallery = () => {
   const [selectedCategory, setSelectedCategory] = useState('전체');
+  const [selectedSubCategory, setSelectedSubCategory] = useState('전체');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [isWriting, setIsWriting] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
@@ -20,12 +22,31 @@ export const Gallery = () => {
 
   const categories = ['전체', '주거', '상업', '사무', '숙박', '가구'];
   
-  const filteredProjects = selectedCategory === '전체' 
-    ? projects 
-    : projects.filter(p => p.category === selectedCategory);
+  const availableSubCategories = useMemo(() => {
+    if (selectedCategory === '전체') return [];
+    const subs = new Set<string>();
+    projects.filter(p => p.category === selectedCategory).forEach(p => {
+      if (p.subCategory) subs.add(p.subCategory);
+    });
+    return ['전체', ...Array.from(subs)];
+  }, [selectedCategory, projects]);
+
+  useEffect(() => {
+    setSelectedSubCategory('전체');
+  }, [selectedCategory]);
+
+  const filteredProjects = projects.filter(p => {
+    const matchCategory = selectedCategory === '전체' || p.category === selectedCategory;
+    const matchSubCategory = selectedSubCategory === '전체' || p.subCategory === selectedSubCategory;
+    const matchSearch = searchQuery === '' || 
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (p.subCategory && p.subCategory.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchCategory && matchSubCategory && matchSearch;
+  });
 
   const handleAdminLogin = () => {
-    if (passwordInput === 'admin123') {
+    const adminPassword = localStorage.getItem('adminPassword') || 'admin1234';
+    if (passwordInput === adminPassword) {
       setIsAdmin(true);
       setShowPasswordModal(false);
       setPasswordInput('');
@@ -48,21 +69,64 @@ export const Gallery = () => {
       <SectionTitle title="갤러리" subtitle="에바스의 다양한 공간 포트폴리오입니다." />
       
       {/* Category Filter */}
-      <div className="flex flex-wrap gap-2 mb-12">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={cn(
-              "px-6 py-2 rounded-full text-sm font-medium transition-all border",
-              selectedCategory === cat
-                ? "bg-sage-800 text-white border-sage-800 shadow-md"
-                : "bg-white text-sage-600 border-sage-200 hover:border-sage-400"
-            )}
-          >
-            {cat}{(cat !== '전체' && cat !== '가구') ? '공간' : ''}
-          </button>
-        ))}
+      <div className="flex flex-col gap-4 mb-12">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={cn(
+                  "px-6 py-2 rounded-full text-sm font-medium transition-all border",
+                  selectedCategory === cat
+                    ? "bg-sage-800 text-white border-sage-800 shadow-md"
+                    : "bg-white text-sage-600 border-sage-200 hover:border-sage-400"
+                )}
+              >
+                {cat}{(cat !== '전체' && cat !== '가구') ? '공간' : ''}
+              </button>
+            ))}
+          </div>
+          
+          {/* Search Bar */}
+          <div className="relative w-full md:w-64 flex-shrink-0">
+            <input
+              type="text"
+              placeholder="세부 카테고리 또는 제목 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-sage-200 rounded-full focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent text-sm"
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-sage-400 w-4 h-4" />
+          </div>
+        </div>
+        
+        {/* Sub Category Filter */}
+        <AnimatePresence>
+          {selectedCategory !== '전체' && availableSubCategories.length > 1 && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0, marginTop: -16 }}
+              animate={{ opacity: 1, height: 'auto', marginTop: 0 }}
+              exit={{ opacity: 0, height: 0, marginTop: -16 }}
+              className="flex flex-wrap gap-2 overflow-hidden"
+            >
+              {availableSubCategories.map((sub) => (
+                <button
+                  key={sub}
+                  onClick={() => setSelectedSubCategory(sub)}
+                  className={cn(
+                    "px-4 py-1.5 rounded-full text-xs font-medium transition-all border",
+                    selectedSubCategory === sub
+                      ? "bg-sage-600 text-white border-sage-600"
+                      : "bg-sage-50 text-sage-500 border-sage-200 hover:bg-sage-100"
+                  )}
+                >
+                  {sub}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       
       <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

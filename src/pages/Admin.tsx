@@ -1,21 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SectionTitle, cn } from '../components/Common';
 import { QAPost, Project } from '../types';
 import { PROJECTS, getProjects } from '../data/projects';
 import { motion, AnimatePresence, Reorder } from 'motion/react';
-import { Lock, Plus, Trash2, Image, MessageSquare, LogOut, X, GripVertical, Edit2 } from 'lucide-react';
+import { Lock, Plus, Trash2, Image, MessageSquare, LogOut, X, GripVertical, Edit2, Settings, Eye, EyeOff, Search } from 'lucide-react';
 
 export const Admin = () => {
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
   const [activeTab, setActiveTab] = useState<'gallery' | 'qa'>('gallery');
+
+  // Settings State
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Gallery State
   const [projects, setProjects] = useState<Project[]>([]);
   const [isWritingProject, setIsWritingProject] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('전체');
+  const [selectedSubCategory, setSelectedSubCategory] = useState('전체');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const categories = ['전체', '주거', '상업', '사무', '숙박', '가구'];
+
+  const availableSubCategories = useMemo(() => {
+    if (selectedCategory === '전체') return [];
+    const subs = new Set<string>();
+    projects.filter(p => p.category === selectedCategory).forEach(p => {
+      if (p.subCategory) subs.add(p.subCategory);
+    });
+    return ['전체', ...Array.from(subs)];
+  }, [selectedCategory, projects]);
+
+  useEffect(() => {
+    setSelectedSubCategory('전체');
+  }, [selectedCategory]);
+
+  const filteredProjects = projects.filter(p => {
+    const matchCategory = selectedCategory === '전체' || p.category === selectedCategory;
+    const matchSubCategory = selectedSubCategory === '전체' || p.subCategory === selectedSubCategory;
+    const matchSearch = searchQuery === '' || 
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (p.subCategory && p.subCategory.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchCategory && matchSubCategory && matchSearch;
+  });
 
   // QA State
   const [qaPosts, setQaPosts] = useState<QAPost[]>([]);
@@ -41,7 +78,8 @@ export const Admin = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === 'admin1234') {
+    const adminPassword = localStorage.getItem('adminPassword') || 'admin1234';
+    if (passwordInput === adminPassword) {
       setIsAdmin(true);
       sessionStorage.setItem('isAdmin', 'true');
     } else {
@@ -146,6 +184,36 @@ export const Admin = () => {
     }
   };
 
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    const adminPassword = localStorage.getItem('adminPassword') || 'admin1234';
+    
+    if (currentPassword !== adminPassword) {
+      alert('현재 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      alert('새 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    
+    if (newPassword.length < 4) {
+      alert('새 비밀번호는 4자리 이상이어야 합니다.');
+      return;
+    }
+    
+    localStorage.setItem('adminPassword', newPassword);
+    alert('비밀번호가 성공적으로 변경되었습니다. 다시 로그인해주세요.');
+    
+    // Reset and logout
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowChangePasswordModal(false);
+    handleLogout();
+  };
+
   // QA Functions
   const handleReply = (id: number, reply: string) => {
     const today = new Date().toISOString().split('T')[0];
@@ -196,13 +264,22 @@ export const Admin = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-sage-700 mb-1">비밀번호</label>
-              <input 
-                type="password" 
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                className="w-full p-3 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-500 outline-none transition-all"
-                placeholder="비밀번호를 입력하세요"
-              />
+              <div className="relative">
+                <input 
+                  type={showPasswordInput ? "text" : "password"}
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  className="w-full p-3 pr-12 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-500 outline-none transition-all"
+                  placeholder="비밀번호를 입력하세요"
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowPasswordInput(!showPasswordInput)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sage-400 hover:text-sage-600 p-1"
+                >
+                  {showPasswordInput ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
             <button 
               type="submit"
@@ -225,12 +302,20 @@ export const Admin = () => {
             <Lock size={20} className="text-sage-500" />
             관리자 페이지
           </h1>
-          <button 
-            onClick={handleLogout}
-            className="text-sm text-sage-500 hover:text-sage-800 flex items-center gap-1"
-          >
-            <LogOut size={16} /> 로그아웃
-          </button>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setShowChangePasswordModal(true)}
+              className="text-sm text-sage-500 hover:text-sage-800 flex items-center gap-1"
+            >
+              <Settings size={16} /> 비밀번호 변경
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="text-sm text-sage-500 hover:text-sage-800 flex items-center gap-1"
+            >
+              <LogOut size={16} /> 로그아웃
+            </button>
+          </div>
         </div>
       </header>
 
@@ -269,14 +354,74 @@ export const Admin = () => {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              <div className="flex justify-between items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <h2 className="text-lg md:text-2xl font-bold text-sage-900 whitespace-nowrap">포트폴리오 목록</h2>
-                <button 
-                  onClick={() => setIsWritingProject(true)}
-                  className="px-3 py-1.5 md:px-4 md:py-2 bg-sage-800 text-white text-xs md:text-base font-bold rounded-lg hover:bg-sage-900 flex items-center gap-1.5 md:gap-2 whitespace-nowrap flex-shrink-0"
-                >
-                  <Plus className="w-4 h-4 md:w-[18px] md:h-[18px]" /> <span className="hidden sm:inline">새 프로젝트 등록</span><span className="sm:hidden">등록</span>
-                </button>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  {/* Search Bar */}
+                  <div className="relative w-full sm:w-64 flex-shrink-0">
+                    <input
+                      type="text"
+                      placeholder="세부 카테고리 또는 제목 검색..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-sage-200 rounded-full focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent text-sm"
+                    />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-sage-400 w-4 h-4" />
+                  </div>
+                  <button 
+                    onClick={() => setIsWritingProject(true)}
+                    className="px-3 py-1.5 md:px-4 md:py-2 bg-sage-800 text-white text-xs md:text-base font-bold rounded-lg hover:bg-sage-900 flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap flex-shrink-0 h-[38px] md:h-[42px]"
+                  >
+                    <Plus className="w-4 h-4 md:w-[18px] md:h-[18px]" /> <span className="hidden sm:inline">새 프로젝트 등록</span><span className="sm:hidden">등록</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Category Filter */}
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={cn(
+                        "px-4 py-1.5 rounded-full text-xs font-medium transition-all border",
+                        selectedCategory === cat
+                          ? "bg-sage-800 text-white border-sage-800 shadow-md"
+                          : "bg-white text-sage-600 border-sage-200 hover:border-sage-400"
+                      )}
+                    >
+                      {cat}{(cat !== '전체' && cat !== '가구') ? '공간' : ''}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Sub Category Filter */}
+                <AnimatePresence>
+                  {selectedCategory !== '전체' && availableSubCategories.length > 1 && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0, marginTop: -16 }}
+                      animate={{ opacity: 1, height: 'auto', marginTop: 0 }}
+                      exit={{ opacity: 0, height: 0, marginTop: -16 }}
+                      className="flex flex-wrap gap-2 overflow-hidden"
+                    >
+                      {availableSubCategories.map((sub) => (
+                        <button
+                          key={sub}
+                          onClick={() => setSelectedSubCategory(sub)}
+                          className={cn(
+                            "px-3 py-1 rounded-full text-[11px] font-medium transition-all border",
+                            selectedSubCategory === sub
+                              ? "bg-sage-600 text-white border-sage-600"
+                              : "bg-sage-50 text-sage-500 border-sage-200 hover:bg-sage-100"
+                          )}
+                        >
+                          {sub}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               <div className="bg-white rounded-2xl shadow-sm border border-sage-100 overflow-hidden">
@@ -294,7 +439,7 @@ export const Admin = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-sage-100">
-                      {projects.map((p) => (
+                      {filteredProjects.map((p) => (
                         <tr 
                           key={p.id} 
                           className="hover:bg-sage-50/60 transition-colors group cursor-pointer"
@@ -331,7 +476,7 @@ export const Admin = () => {
 
                 {/* Mobile Grid View */}
                 <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
-                  {projects.map((p) => (
+                  {filteredProjects.map((p) => (
                     <div 
                       key={p.id} 
                       className="bg-white rounded-xl overflow-hidden border border-sage-200 shadow-sm cursor-pointer"
@@ -436,6 +581,106 @@ export const Admin = () => {
         </AnimatePresence>
       </div>
 
+      {/* Change Password Modal */}
+      <AnimatePresence>
+        {showChangePasswordModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              <div className="p-6 border-b flex justify-between items-center bg-white">
+                <h3 className="text-xl font-bold text-sage-800 flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-sage-500" />
+                  비밀번호 변경
+                </h3>
+                <button onClick={() => setShowChangePasswordModal(false)} className="text-sage-400 hover:text-sage-600">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                <form onSubmit={handleChangePassword} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-sage-700 mb-1">현재 비밀번호</label>
+                    <div className="relative">
+                      <input 
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="w-full p-3 pr-12 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-500 outline-none transition-all"
+                        placeholder="현재 비밀번호를 입력하세요"
+                        required
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-sage-400 hover:text-sage-600 p-1"
+                      >
+                        {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-sage-700 mb-1">새 비밀번호</label>
+                    <div className="relative">
+                      <input 
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full p-3 pr-12 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-500 outline-none transition-all"
+                        placeholder="새 비밀번호를 입력하세요"
+                        required
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-sage-400 hover:text-sage-600 p-1"
+                      >
+                        {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-sage-700 mb-1">새 비밀번호 확인</label>
+                    <div className="relative">
+                      <input 
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full p-3 pr-12 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-500 outline-none transition-all"
+                        placeholder="새 비밀번호를 다시 입력하세요"
+                        required
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-sage-400 hover:text-sage-600 p-1"
+                      >
+                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4">
+                    <button 
+                      type="submit"
+                      className="w-full py-3 bg-sage-800 text-white font-bold rounded-lg hover:bg-sage-900 transition-colors"
+                    >
+                      비밀번호 변경
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Write Project Modal */}
       <AnimatePresence>
         {isWritingProject && (
@@ -447,6 +692,7 @@ export const Admin = () => {
             onSave={handleSaveProject} 
             categories={['주거', '상업', '사무', '숙박', '가구']}
             initialData={editingProject}
+            existingSubCategories={availableSubCategories.filter(sub => sub !== '전체')}
           />
         )}
       </AnimatePresence>
@@ -551,7 +797,7 @@ export const Admin = () => {
 
 // Reusing the WritePostModal from Gallery.tsx logic but standalone here to avoid circular deps or complex exports
 // Ideally this should be a shared component, but for now I'll duplicate the form logic for simplicity and speed
-const WritePostModal = ({ onClose, onSave, categories, initialData }: { onClose: () => void, onSave: (p: Project) => void, categories: string[], initialData?: Project | null }) => {
+const WritePostModal = ({ onClose, onSave, categories, initialData, existingSubCategories }: { onClose: () => void, onSave: (p: Project) => void, categories: string[], initialData?: Project | null, existingSubCategories: string[] }) => {
   const [formData, setFormData] = useState<Partial<Project>>({
     category: '주거',
     subCategory: '',
@@ -707,12 +953,18 @@ const WritePostModal = ({ onClose, onSave, categories, initialData }: { onClose:
                 <label className="block text-sm font-medium mb-1">세부 카테고리</label>
                 <input 
                   type="text" 
+                  list="subcategories"
                   className="w-full p-2 border rounded-lg"
                   value={formData.subCategory}
                   onChange={(e) => setFormData({...formData, subCategory: e.target.value})}
                   placeholder="예: 아파트, 카페"
                   required
                 />
+                <datalist id="subcategories">
+                  {existingSubCategories.map(sub => (
+                    <option key={sub} value={sub} />
+                  ))}
+                </datalist>
               </div>
             </div>
 
