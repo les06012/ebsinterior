@@ -4,14 +4,14 @@ import { SectionTitle, cn } from '../components/Common';
 import { QAPost, Project } from '../types';
 import { PROJECTS, getProjects } from '../data/projects';
 import { motion, AnimatePresence, Reorder } from 'motion/react';
-import { Lock, Plus, Trash2, Image, MessageSquare, LogOut, X, GripVertical, Edit2, Settings, Eye, EyeOff, Search } from 'lucide-react';
+import { Lock, Plus, Trash2, Image, MessageSquare, LogOut, X, GripVertical, Edit2, Settings, Eye, EyeOff, Search, Home, Tag } from 'lucide-react';
 
 export const Admin = () => {
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [showPasswordInput, setShowPasswordInput] = useState(false);
-  const [activeTab, setActiveTab] = useState<'gallery' | 'qa'>('gallery');
+  const [activeTab, setActiveTab] = useState<'gallery' | 'qa' | 'home'>('gallery');
 
   // Settings State
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -30,7 +30,54 @@ export const Admin = () => {
   const [selectedSubCategory, setSelectedSubCategory] = useState('전체');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const categories = ['전체', '주거', '상업', '사무', '숙박', '가구'];
+  // Home State
+  const [homeHeroImage, setHomeHeroImage] = useState(() => {
+    return localStorage.getItem('homeHeroImage') || 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop';
+  });
+
+  const handleSaveHomeHeroImage = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem('homeHeroImage', homeHeroImage);
+    alert('메인화면 이미지가 성공적으로 변경되었습니다.');
+  };
+
+  const [categories, setCategories] = useState<string[]>(() => {
+    const saved = localStorage.getItem('portfolioCategories');
+    if (saved) return JSON.parse(saved);
+    return ['전체', '주거', '상업', '사무', '숙박', '가구'];
+  });
+  const [newCategory, setNewCategory] = useState('');
+
+  const handleAddCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCategory.trim()) return;
+    if (categories.includes(newCategory.trim())) {
+      alert('이미 존재하는 카테고리입니다.');
+      return;
+    }
+    
+    const updatedCategories = [...categories, newCategory.trim()];
+    setCategories(updatedCategories);
+    localStorage.setItem('portfolioCategories', JSON.stringify(updatedCategories));
+    setNewCategory('');
+  };
+
+  const handleDeleteCategory = (categoryToDelete: string) => {
+    if (categoryToDelete === '전체') {
+      alert('기본 카테고리는 삭제할 수 없습니다.');
+      return;
+    }
+    if (confirm(`'${categoryToDelete}' 카테고리를 삭제하시겠습니까?`)) {
+      const updatedCategories = categories.filter(c => c !== categoryToDelete);
+      setCategories(updatedCategories);
+      localStorage.setItem('portfolioCategories', JSON.stringify(updatedCategories));
+      
+      // If the deleted category was selected, reset to '전체'
+      if (selectedCategory === categoryToDelete) {
+        setSelectedCategory('전체');
+      }
+    }
+  };
 
   const availableSubCategories = useMemo(() => {
     if (selectedCategory === '전체') return [];
@@ -342,6 +389,16 @@ export const Admin = () => {
             <span className="flex items-center gap-1.5 md:gap-2"><MessageSquare className="w-4 h-4 md:w-5 md:h-5" /> 문의게시판 관리</span>
             {activeTab === 'qa' && <motion.div layoutId="adminTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-sage-900" />}
           </button>
+          <button
+            onClick={() => setActiveTab('home')}
+            className={cn(
+              "pb-4 px-2 md:px-4 font-bold text-sm md:text-lg transition-colors relative whitespace-nowrap flex-shrink-0",
+              activeTab === 'home' ? "text-sage-900" : "text-sage-400 hover:text-sage-600"
+            )}
+          >
+            <span className="flex items-center gap-1.5 md:gap-2"><Settings className="w-4 h-4 md:w-5 md:h-5" /> 관리</span>
+            {activeTab === 'home' && <motion.div layoutId="adminTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-sage-900" />}
+          </button>
         </div>
 
         {/* Content */}
@@ -509,7 +566,7 @@ export const Admin = () => {
                 </div>
               </div>
             </motion.div>
-          ) : (
+          ) : activeTab === 'qa' ? (
             <motion.div 
               key="qa"
               initial={{ opacity: 0, x: 20 }}
@@ -575,6 +632,111 @@ export const Admin = () => {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="home"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6 max-w-2xl mx-auto"
+            >
+              <h2 className="text-lg md:text-2xl font-bold text-sage-900 whitespace-nowrap">관리</h2>
+              
+              <div className="bg-white rounded-2xl shadow-sm border border-sage-100 overflow-hidden p-6 md:p-8">
+                <h3 className="text-xl font-bold text-sage-800 mb-6 flex items-center gap-2">
+                  <Image className="w-5 h-5 text-sage-500" />
+                  메인(히어로) 이미지 변경
+                </h3>
+                
+                <form onSubmit={handleSaveHomeHeroImage} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-sage-700 mb-1">이미지 URL</label>
+                    <input 
+                      type="url"
+                      value={homeHeroImage}
+                      onChange={(e) => setHomeHeroImage(e.target.value)}
+                      className="w-full p-3 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-500 outline-none transition-all"
+                      placeholder="https://..."
+                      required
+                    />
+                    <p className="text-xs text-sage-500 mt-2">
+                      메인 화면의 첫 번째 섹션 배경으로 사용될 이미지의 URL을 입력하세요. 고해상도 이미지를 권장합니다.
+                    </p>
+                  </div>
+                  
+                  {homeHeroImage && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-sage-700 mb-2">미리보기</label>
+                      <div className="aspect-[21/9] w-full rounded-xl overflow-hidden border border-sage-200">
+                        <img 
+                          src={homeHeroImage} 
+                          alt="Hero Preview" 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop';
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="pt-4">
+                    <button 
+                      type="submit"
+                      className="w-full py-3 bg-sage-800 text-white font-bold rounded-lg hover:bg-sage-900 transition-colors"
+                    >
+                      저장하기
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Category Management */}
+              <div className="bg-white rounded-2xl shadow-sm border border-sage-100 overflow-hidden p-6 md:p-8">
+                <h3 className="text-xl font-bold text-sage-800 mb-6 flex items-center gap-2">
+                  <Tag className="w-5 h-5 text-sage-500" />
+                  카테고리 관리
+                </h3>
+                
+                <form onSubmit={handleAddCategory} className="flex gap-2 mb-6">
+                  <input
+                    type="text"
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    placeholder="새 카테고리 이름"
+                    className="flex-1 p-3 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-500 outline-none transition-all"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-sage-800 text-white font-bold rounded-lg hover:bg-sage-900 transition-colors whitespace-nowrap"
+                  >
+                    추가
+                  </button>
+                </form>
+
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((cat) => (
+                    <div
+                      key={cat}
+                      className="flex items-center gap-2 px-4 py-2 bg-sage-50 text-sage-800 rounded-full border border-sage-200"
+                    >
+                      <span className="text-sm font-medium">{cat}</span>
+                      {cat !== '전체' && (
+                        <button
+                          onClick={() => handleDeleteCategory(cat)}
+                          className="text-sage-400 hover:text-red-500 transition-colors"
+                          title="삭제"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </motion.div>
           )}
@@ -690,7 +852,7 @@ export const Admin = () => {
               setEditingProject(null);
             }} 
             onSave={handleSaveProject} 
-            categories={['주거', '상업', '사무', '숙박', '가구']}
+            categories={categories.filter(c => c !== '전체')}
             initialData={editingProject}
             existingSubCategories={availableSubCategories.filter(sub => sub !== '전체')}
           />
@@ -799,7 +961,7 @@ export const Admin = () => {
 // Ideally this should be a shared component, but for now I'll duplicate the form logic for simplicity and speed
 const WritePostModal = ({ onClose, onSave, categories, initialData, existingSubCategories }: { onClose: () => void, onSave: (p: Project) => void, categories: string[], initialData?: Project | null, existingSubCategories: string[] }) => {
   const [formData, setFormData] = useState<Partial<Project>>({
-    category: '주거',
+    category: categories.length > 0 ? categories[0] : '주거',
     subCategory: '',
     title: '',
     area: '',

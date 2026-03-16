@@ -8,6 +8,9 @@ import { PROJECTS, getProjects } from '../data/projects';
 export const Home = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [heroImage, setHeroImage] = useState(() => {
+    return localStorage.getItem('homeHeroImage') || 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop';
+  });
   const projectsList = getProjects();
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -61,7 +64,7 @@ export const Home = () => {
       <section className="relative h-[80vh] min-h-[600px] flex items-center justify-center overflow-hidden -mt-8 -mx-8">
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop" 
+            src={heroImage} 
             alt="Hero" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"

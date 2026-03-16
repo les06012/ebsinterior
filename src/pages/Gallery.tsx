@@ -20,7 +20,11 @@ export const Gallery = () => {
     return getProjects();
   });
 
-  const categories = ['전체', '주거', '상업', '사무', '숙박', '가구'];
+  const [categories, setCategories] = useState<string[]>(() => {
+    const saved = localStorage.getItem('portfolioCategories');
+    if (saved) return JSON.parse(saved);
+    return ['전체', '주거', '상업', '사무', '숙박', '가구'];
+  });
   
   const availableSubCategories = useMemo(() => {
     if (selectedCategory === '전체') return [];
