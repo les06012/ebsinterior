@@ -3,117 +3,121 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useRef } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import { Sidebar, MobileHeader, MobileBottomCTA, Footer } from './components/Common';
-import { Home } from './pages/Home';
-import { About } from './pages/About';
-import { Gallery, GalleryDetail } from './pages/Gallery';
-import { Process } from './pages/Process';
-import { QA } from './pages/QA';
-import { Contact } from './pages/Contact';
-import { Admin } from './pages/Admin';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom'
+import { useEffect, useRef } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import {
+  Sidebar,
+  MobileHeader,
+  MobileBottomCTA,
+  Footer,
+} from './components/Common'
+import { Home } from './pages/Home'
+import { About } from './pages/About'
+import { Gallery, GalleryDetail } from './pages/Gallery'
+import { Process } from './pages/Process'
+import { QA } from './pages/QA'
+import { Contact } from './pages/Contact'
+import { Admin } from './pages/Admin'
 
 function ScrollToTop() {
-  const { pathname } = useLocation();
+  const { pathname } = useLocation()
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
-  return null;
+    window.scrollTo(0, 0)
+  }, [pathname])
+  return null
 }
 
 function ScrollNavigation() {
-  const { pathname } = useLocation();
-  const navigate = useNavigate();
-  const isNavigating = useRef(false);
-  const touchStartY = useRef(0);
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const isNavigating = useRef(false)
+  const touchStartY = useRef(0)
 
-  const navOrder = [
-    '/',
-    '/about',
-    '/gallery',
-    '/process',
-    '/qa',
-    '/contact'
-  ];
+  const navOrder = ['/', '/about', '/gallery', '/process', '/qa', '/contact']
 
   useEffect(() => {
     const handleNavigation = (direction: 'next' | 'prev') => {
-      const currentIndex = navOrder.indexOf(pathname);
-      if (currentIndex === -1) return;
+      const currentIndex = navOrder.indexOf(pathname)
+      if (currentIndex === -1) return
 
-      let targetPath = '';
+      let targetPath = ''
       if (direction === 'next' && currentIndex < navOrder.length - 1) {
-        targetPath = navOrder[currentIndex + 1];
+        targetPath = navOrder[currentIndex + 1]
       } else if (direction === 'prev' && currentIndex > 0) {
-        targetPath = navOrder[currentIndex - 1];
+        targetPath = navOrder[currentIndex - 1]
       }
 
       if (targetPath) {
-        isNavigating.current = true;
+        isNavigating.current = true
         setTimeout(() => {
-          navigate(targetPath);
-          isNavigating.current = false;
-        }, 500);
+          navigate(targetPath)
+          isNavigating.current = false
+        }, 500)
       }
-    };
+    }
 
     const isAtBottom = () => {
-      const scrollHeight = document.documentElement.scrollHeight;
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      const clientHeight = window.innerHeight;
-      return scrollTop + clientHeight >= scrollHeight - 10;
-    };
+      const scrollHeight = document.documentElement.scrollHeight
+      const scrollTop = window.scrollY || document.documentElement.scrollTop
+      const clientHeight = window.innerHeight
+      return scrollTop + clientHeight >= scrollHeight - 10
+    }
 
     const isAtTop = () => {
-      return (window.scrollY || document.documentElement.scrollTop) <= 10;
-    };
+      return (window.scrollY || document.documentElement.scrollTop) <= 10
+    }
 
     const handleWheel = (e: WheelEvent) => {
-      if (isNavigating.current) return;
+      if (isNavigating.current) return
 
       if (e.deltaY > 0 && isAtBottom()) {
-        handleNavigation('next');
+        handleNavigation('next')
       } else if (e.deltaY < 0 && isAtTop()) {
-        handleNavigation('prev');
+        handleNavigation('prev')
       }
-    };
+    }
 
     const handleTouchStart = (e: TouchEvent) => {
-      touchStartY.current = e.touches[0].clientY;
-    };
+      touchStartY.current = e.touches[0].clientY
+    }
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (isNavigating.current) return;
+      if (isNavigating.current) return
 
-      const touchEndY = e.touches[0].clientY;
-      const deltaY = touchStartY.current - touchEndY;
+      const touchEndY = e.touches[0].clientY
+      const deltaY = touchStartY.current - touchEndY
 
       if (deltaY > 50 && isAtBottom()) {
-        handleNavigation('next');
+        handleNavigation('next')
       } else if (deltaY < -50 && isAtTop()) {
-        handleNavigation('prev');
+        handleNavigation('prev')
       }
-    };
+    }
 
-    window.addEventListener('wheel', handleWheel, { passive: true });
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('wheel', handleWheel, { passive: true })
+    window.addEventListener('touchstart', handleTouchStart, { passive: true })
+    window.addEventListener('touchmove', handleTouchMove, { passive: true })
 
     return () => {
-      window.removeEventListener('wheel', handleWheel);
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', handleTouchMove);
-    };
-  }, [pathname, navigate]);
+      window.removeEventListener('wheel', handleWheel)
+      window.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('touchmove', handleTouchMove)
+    }
+  }, [pathname, navigate])
 
-  return null;
+  return null
 }
 
 function AnimatedRoutes() {
-  const location = useLocation();
-  
+  const location = useLocation()
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -121,7 +125,7 @@ function AnimatedRoutes() {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -20 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
         className="w-full"
       >
         <Routes location={location}>
@@ -136,7 +140,7 @@ function AnimatedRoutes() {
         </Routes>
       </motion.div>
     </AnimatePresence>
-  );
+  )
 }
 
 export default function App() {
@@ -161,5 +165,5 @@ export default function App() {
         <MobileBottomCTA />
       </div>
     </Router>
-  );
+  )
 }
