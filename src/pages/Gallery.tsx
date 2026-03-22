@@ -1,286 +1,279 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { SectionTitle, cn } from '../components/Common';
-import { PROJECTS, getProjects } from '../data/projects';
-import { Project } from '../types';
-import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Maximize2, Calendar, Tag, ArrowLeft, Phone, Plus, X, Lock, Search, Eye, EyeOff } from 'lucide-react';
+import React, { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { SectionTitle, cn } from '../components/Common'
+import { Project } from '../types'
+import { motion, AnimatePresence } from 'motion/react'
+import { MapPin, Maximize2, Calendar, ArrowLeft, Phone } from 'lucide-react'
+import { fetchProjectById, fetchProjects } from '../api/projects'
 
 export const Gallery = () => {
-  const [selectedCategory, setSelectedCategory] = useState('전체');
-  const [selectedSubCategory, setSelectedSubCategory] = useState('전체');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isWriting, setIsWriting] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('전체')
+  const [projects, setProjects] = useState<Project[]>([])
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true)
+  const [projectError, setProjectError] = useState('')
 
-  // Load projects from local storage and merge with static data
-  const [projects, setProjects] = useState<Project[]>(() => {
-    return getProjects();
-  });
-
-  const [categories, setCategories] = useState<string[]>(() => {
-    const saved = localStorage.getItem('portfolioCategories');
-    if (saved) return JSON.parse(saved);
-    return ['전체', '주거', '상업', '사무', '숙박', '가구'];
-  });
-  
-  const availableSubCategories = useMemo(() => {
-    if (selectedCategory === '전체') return [];
-    const subs = new Set<string>();
-    projects.filter(p => p.category === selectedCategory).forEach(p => {
-      if (p.subCategory) subs.add(p.subCategory);
-    });
-    return ['전체', ...Array.from(subs)];
-  }, [selectedCategory, projects]);
+  const categories = ['전체', '주거', '상업', '사무', '숙박', '가구']
 
   useEffect(() => {
-    setSelectedSubCategory('전체');
-  }, [selectedCategory]);
+    const loadProjects = async () => {
+      setIsLoadingProjects(true)
+      setProjectError('')
 
-  const filteredProjects = projects.filter(p => {
-    const matchCategory = selectedCategory === '전체' || p.category === selectedCategory;
-    const matchSubCategory = selectedSubCategory === '전체' || p.subCategory === selectedSubCategory;
-    const matchSearch = searchQuery === '' || 
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      (p.subCategory && p.subCategory.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchCategory && matchSubCategory && matchSearch;
-  });
-
-  const handleAdminLogin = () => {
-    const adminPassword = localStorage.getItem('adminPassword') || 'admin1234';
-    if (passwordInput === adminPassword) {
-      setIsAdmin(true);
-      setShowPasswordModal(false);
-      setPasswordInput('');
-    } else {
-      alert('비밀번호가 일치하지 않습니다.');
+      try {
+        const firestoreProjects = await fetchProjects()
+        setProjects(firestoreProjects)
+      } catch (error) {
+        setProjectError(
+          error instanceof Error
+            ? `프로젝트를 불러오지 못했습니다: ${error.message}`
+            : '프로젝트를 불러오지 못했습니다.',
+        )
+      } finally {
+        setIsLoadingProjects(false)
+      }
     }
-  };
 
-  const handleSavePost = (newProject: Project) => {
-    const saved = localStorage.getItem('customProjects');
-    const currentCustom = saved ? JSON.parse(saved) : [];
-    const updatedCustom = [...currentCustom, newProject];
-    localStorage.setItem('customProjects', JSON.stringify(updatedCustom));
-    setProjects(getProjects());
-    setIsWriting(false);
-  };
+    void loadProjects()
+  }, [])
+
+  const filteredProjects =
+    selectedCategory === '전체'
+      ? projects
+      : projects.filter(p => p.category === selectedCategory)
 
   return (
     <div className="py-12 px-4 relative">
-      <SectionTitle title="갤러리" subtitle="에바스의 다양한 공간 포트폴리오입니다." />
-      
-      {/* Category Filter */}
-      <div className="flex flex-col gap-4 mb-12">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={cn(
-                  "px-6 py-2 rounded-full text-sm font-medium transition-all border",
-                  selectedCategory === cat
-                    ? "bg-sage-800 text-white border-sage-800 shadow-md"
-                    : "bg-white text-sage-600 border-sage-200 hover:border-sage-400"
-                )}
-              >
-                {cat}{(cat !== '전체' && cat !== '가구') ? '공간' : ''}
-              </button>
-            ))}
-          </div>
-          
-          {/* Search Bar */}
-          <div className="relative w-full md:w-64 flex-shrink-0">
-            <input
-              type="text"
-              placeholder="세부 카테고리 또는 제목 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-sage-200 rounded-full focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent text-sm"
-            />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-sage-400 w-4 h-4" />
-          </div>
-        </div>
-        
-        {/* Sub Category Filter */}
-        <AnimatePresence>
-          {selectedCategory !== '전체' && availableSubCategories.length > 1 && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0, marginTop: -16 }}
-              animate={{ opacity: 1, height: 'auto', marginTop: 0 }}
-              exit={{ opacity: 0, height: 0, marginTop: -16 }}
-              className="flex flex-wrap gap-2 overflow-hidden"
-            >
-              {availableSubCategories.map((sub) => (
-                <button
-                  key={sub}
-                  onClick={() => setSelectedSubCategory(sub)}
-                  className={cn(
-                    "px-4 py-1.5 rounded-full text-xs font-medium transition-all border",
-                    selectedSubCategory === sub
-                      ? "bg-sage-600 text-white border-sage-600"
-                      : "bg-sage-50 text-sage-500 border-sage-200 hover:bg-sage-100"
-                  )}
-                >
-                  {sub}
-                </button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <SectionTitle
+        title="갤러리"
+        subtitle="에바스의 다양한 공간 포트폴리오입니다."
+      />
+
+      <div className="flex flex-wrap gap-2 mb-12">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={cn(
+              'px-6 py-2 rounded-full text-sm font-medium transition-all border',
+              selectedCategory === cat
+                ? 'bg-sage-800 text-white border-sage-800 shadow-md'
+                : 'bg-white text-sage-600 border-sage-200 hover:border-sage-400',
+            )}
+          >
+            {cat}
+            {cat !== '전체' && cat !== '가구' ? '공간' : ''}
+          </button>
+        ))}
       </div>
-      
+
+      {projectError && (
+        <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {projectError}
+        </div>
+      )}
+
       <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <AnimatePresence mode="popLayout">
-          {filteredProjects.map((p) => (
-            <motion.div
-              layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3 }}
-              key={p.id}
-            >
-              <Link to={`/gallery/detail/${p.id}`} className="group block">
-              <div className="aspect-[4/3] overflow-hidden rounded-2xl mb-4 relative">
-                <img 
-                  src={p.thumbnail} 
-                  alt={p.title} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                  onContextMenu={(e) => e.preventDefault()}
-                  draggable={false}
-                />
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <span className="px-4 py-2 bg-white/90 rounded-full text-xs font-bold text-sage-900">상세보기</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-sage-500">{p.category} · {p.subCategory} · {p.area}</p>
-                <h3 className="text-lg font-bold group-hover:text-sage-600 transition-colors">{p.title}</h3>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {p.keywords.map(k => (
-                    <span key={k} className="text-[10px] px-2 py-0.5 bg-sage-100 text-sage-600 rounded">#{k}</span>
-                  ))}
-                </div>
-              </div>
-            </Link>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        {filteredProjects.length === 0 && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
+        {isLoadingProjects ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className="col-span-full py-24 text-center text-sage-400"
           >
-            등록된 프로젝트가 없습니다.
+            프로젝트를 불러오는 중입니다.
           </motion.div>
+        ) : (
+          <>
+            <AnimatePresence mode="popLayout">
+              {filteredProjects.map(p => (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.3 }}
+                  key={p.id}
+                >
+                  <Link to={`/gallery/detail/${p.id}`} className="group block">
+                    <div className="aspect-[4/3] overflow-hidden rounded-2xl mb-4 relative">
+                      <img
+                        src={p.thumbnail}
+                        alt={p.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        referrerPolicy="no-referrer"
+                        onContextMenu={e => e.preventDefault()}
+                        draggable={false}
+                      />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="px-4 py-2 bg-white/90 rounded-full text-xs font-bold text-sage-900">
+                          상세보기
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-sage-500">
+                        {p.category} · {p.subCategory} · {p.area}
+                      </p>
+                      <h3 className="text-lg font-bold group-hover:text-sage-600 transition-colors">
+                        {p.title}
+                      </h3>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {p.keywords.map(k => (
+                          <span
+                            key={k}
+                            className="text-[10px] px-2 py-0.5 bg-sage-100 text-sage-600 rounded"
+                          >
+                            #{k}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            {filteredProjects.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="col-span-full py-24 text-center text-sage-400"
+              >
+                등록된 프로젝트가 없습니다.
+              </motion.div>
+            )}
+          </>
         )}
       </motion.div>
     </div>
-  );
-};
+  )
+}
 
 export const GalleryDetail = () => {
-  const { id } = useParams();
-  
-  const project = useMemo(() => {
-    const saved = localStorage.getItem('customProjects');
-    const customProjects = saved ? JSON.parse(saved) : [];
-    const allProjects = [...PROJECTS, ...customProjects] as Project[];
-    return allProjects.find(p => p.id === id);
-  }, [id]);
+  const { id } = useParams()
+  const [project, setProject] = useState<Project | null>(null)
+  const [isLoadingProject, setIsLoadingProject] = useState(true)
+  const [projectError, setProjectError] = useState('')
 
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  
-  // Drag to scroll state
-  const sliderRef = React.useRef<HTMLDivElement>(null);
-  const [isDown, setIsDown] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+  useEffect(() => {
+    const loadProject = async () => {
+      if (!id) {
+        setProject(null)
+        setProjectError('프로젝트 ID가 없습니다.')
+        setIsLoadingProject(false)
+        return
+      }
 
-  // Flatten all images for navigation
-  const allImages = React.useMemo(() => {
-    if (!project) return [];
-    return project.spaces.flatMap(space => space.images);
-  }, [project]);
+      setIsLoadingProject(true)
+      setProjectError('')
+
+      try {
+        const firestoreProject = await fetchProjectById(id)
+        if (!firestoreProject) {
+          setProject(null)
+          setProjectError('프로젝트를 찾을 수 없습니다.')
+          return
+        }
+
+        setProject(firestoreProject)
+      } catch (error) {
+        setProject(null)
+        setProjectError(
+          error instanceof Error
+            ? `프로젝트를 불러오지 못했습니다: ${error.message}`
+            : '프로젝트를 불러오지 못했습니다.',
+        )
+      } finally {
+        setIsLoadingProject(false)
+      }
+    }
+
+    void loadProject()
+  }, [id])
+
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const sliderRef = React.useRef<HTMLDivElement>(null)
+  const [isDown, setIsDown] = useState(false)
+  const [startX, setStartX] = useState(0)
+  const [scrollLeft, setScrollLeft] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+
+  const allImages = project ? project.spaces.flatMap(space => space.images) : []
 
   const handleNextImage = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (!selectedImage) return;
-    const currentIndex = allImages.indexOf(selectedImage);
-    const nextIndex = (currentIndex + 1) % allImages.length;
-    setSelectedImage(allImages[nextIndex]);
-  };
+    e?.stopPropagation()
+    if (!selectedImage || allImages.length === 0) return
+    const currentIndex = allImages.indexOf(selectedImage)
+    const nextIndex = (currentIndex + 1) % allImages.length
+    setSelectedImage(allImages[nextIndex])
+  }
 
   const handlePrevImage = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (!selectedImage) return;
-    const currentIndex = allImages.indexOf(selectedImage);
-    const prevIndex = (currentIndex - 1 + allImages.length) % allImages.length;
-    setSelectedImage(allImages[prevIndex]);
-  };
+    e?.stopPropagation()
+    if (!selectedImage || allImages.length === 0) return
+    const currentIndex = allImages.indexOf(selectedImage)
+    const prevIndex = (currentIndex - 1 + allImages.length) % allImages.length
+    setSelectedImage(allImages[prevIndex])
+  }
 
-  // Keyboard navigation
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!selectedImage) return;
-      if (e.key === 'ArrowRight') handleNextImage();
-      if (e.key === 'ArrowLeft') handlePrevImage();
-      if (e.key === 'Escape') setSelectedImage(null);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedImage, allImages]);
+      if (!selectedImage) return
+      if (e.key === 'ArrowRight') handleNextImage()
+      if (e.key === 'ArrowLeft') handlePrevImage()
+      if (e.key === 'Escape') setSelectedImage(null)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedImage, allImages])
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!sliderRef.current) return;
-    setIsDown(true);
-    setIsDragging(false);
-    setStartX(e.pageX - sliderRef.current.offsetLeft);
-    setScrollLeft(sliderRef.current.scrollLeft);
-    sliderRef.current.style.cursor = 'grabbing';
-    sliderRef.current.style.scrollSnapType = 'none'; // Disable snap while dragging
-  };
+    if (!sliderRef.current) return
+    setIsDown(true)
+    setIsDragging(false)
+    setStartX(e.pageX - sliderRef.current.offsetLeft)
+    setScrollLeft(sliderRef.current.scrollLeft)
+    sliderRef.current.style.cursor = 'grabbing'
+    sliderRef.current.style.scrollSnapType = 'none'
+  }
 
   const handleMouseLeave = () => {
-    setIsDown(false);
+    setIsDown(false)
     if (sliderRef.current) {
-      sliderRef.current.style.cursor = 'grab';
-      sliderRef.current.style.scrollSnapType = 'x mandatory'; // Re-enable snap
+      sliderRef.current.style.cursor = 'grab'
+      sliderRef.current.style.scrollSnapType = 'x mandatory'
     }
-  };
+  }
 
   const handleMouseUp = () => {
-    setIsDown(false);
+    setIsDown(false)
     if (sliderRef.current) {
-      sliderRef.current.style.cursor = 'grab';
-      sliderRef.current.style.scrollSnapType = 'x mandatory'; // Re-enable snap
+      sliderRef.current.style.cursor = 'grab'
+      sliderRef.current.style.scrollSnapType = 'x mandatory'
     }
-  };
+  }
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDown || !sliderRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - sliderRef.current.offsetLeft;
-    const walk = (x - startX) * 2; // Scroll speed
+    if (!isDown || !sliderRef.current) return
+    e.preventDefault()
+    const x = e.pageX - sliderRef.current.offsetLeft
+    const walk = (x - startX) * 2
     if (Math.abs(walk) > 5) {
-      setIsDragging(true);
+      setIsDragging(true)
     }
-    sliderRef.current.scrollLeft = scrollLeft - walk;
-  };
+    sliderRef.current.scrollLeft = scrollLeft - walk
+  }
 
   const handleImageClick = (url: string) => {
-    if (isDragging) return;
-    setSelectedImage(url);
-  };
+    if (isDragging) return
+    setSelectedImage(url)
+  }
 
-  if (!project) return <div className="p-12 text-center">프로젝트를 찾을 수 없습니다.</div>;
+  if (isLoadingProject) {
+    return <div className="p-12 text-center">프로젝트를 불러오는 중입니다.</div>
+  }
+
+  if (!project) {
+    return <div className="p-12 text-center">{projectError || '프로젝트를 찾을 수 없습니다.'}</div>
+  }
 
   return (
     <div className="pb-24 bg-[#D9E3D0]/30 min-h-screen overflow-x-hidden">
@@ -472,5 +465,5 @@ export const GalleryDetail = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

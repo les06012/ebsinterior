@@ -29,6 +29,13 @@ export interface FAQ {
   answer: string;
 }
 
+export interface QAReply {
+  id: string;
+  author: 'admin' | 'user';
+  content: string;
+  date: string;
+}
+
 export interface QAPost {
   id: number;
   title: string;
@@ -39,10 +46,9 @@ export interface QAPost {
   content?: string;
   password?: string;
   reply?: string;
-  replies?: {
-    id: string;
-    author: 'admin' | 'user';
-    content: string;
-    date: string;
-  }[];
+  replies?: QAReply[];
+}
+
+export interface AdminProjectDraft extends Project {
+  submittedAt: string;
 }
