@@ -8,7 +8,7 @@ import {
   setDoc,
 } from 'firebase/firestore'
 import { FirebaseError } from 'firebase/app'
-import { db } from './firebase'
+import { assertFirebaseConfigured, db } from './firebase'
 import { QAPost, QAReply } from '../types'
 
 const QA_COLLECTION = 'qa'
@@ -59,6 +59,7 @@ const normalizeQAPost = (post: Partial<QAPost>): QAPost => ({
 })
 
 const getNextQAPostId = async () => {
+  assertFirebaseConfigured()
   const counterRef = doc(db, QA_META_COLLECTION, QA_COUNTER_DOC)
 
   return runTransaction(db, async transaction => {
@@ -85,6 +86,7 @@ const getNextQAPostId = async () => {
 
 export const fetchQAPosts = async (): Promise<QAPost[]> => {
   try {
+    assertFirebaseConfigured()
     const snapshot = await getDocs(collection(db, QA_COLLECTION))
 
     return snapshot.docs
@@ -116,6 +118,7 @@ export const fetchQAPosts = async (): Promise<QAPost[]> => {
 
 export const saveQAPost = async (post: QAPost): Promise<QAPost> => {
   try {
+    assertFirebaseConfigured()
     const normalizedPost = normalizeQAPost(post)
     const postId =
       normalizedPost.id > 0 ? normalizedPost.id : await getNextQAPostId()
@@ -144,6 +147,7 @@ export const saveQAPost = async (post: QAPost): Promise<QAPost> => {
 
 export const deleteQAPost = async (postId: number): Promise<void> => {
   try {
+    assertFirebaseConfigured()
     await deleteDoc(doc(db, QA_COLLECTION, String(postId)))
   } catch (error) {
     throw toReadableFirebaseError(error)

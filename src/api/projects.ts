@@ -8,7 +8,7 @@ import {
 } from 'firebase/firestore'
 import { FirebaseError } from 'firebase/app'
 import { getDownloadURL, ref, uploadString } from 'firebase/storage'
-import { db, storage } from './firebase'
+import { assertFirebaseConfigured, db, storage } from './firebase'
 import { Project } from '../types'
 
 const PROJECT_COLLECTION = 'project'
@@ -255,6 +255,7 @@ const normalizeProject = (project: Partial<Project>): Project => ({
 
 export const fetchProjects = async (): Promise<Project[]> => {
   try {
+    assertFirebaseConfigured()
     const snapshot = await getDocs(collection(db, PROJECT_COLLECTION))
 
     const projects = snapshot.docs
@@ -283,6 +284,7 @@ export const fetchProjects = async (): Promise<Project[]> => {
 
 export const saveProject = async (project: Project): Promise<Project> => {
   try {
+    assertFirebaseConfigured()
     const normalizedProject = normalizeProject(project)
     const projectWithUploadedAssets = await uploadProjectAssets(normalizedProject)
     const now = new Date().toISOString()
@@ -308,6 +310,7 @@ export const fetchProjectById = async (
   projectId: string,
 ): Promise<Project | null> => {
   try {
+    assertFirebaseConfigured()
     const snapshot = await getDoc(doc(db, PROJECT_COLLECTION, projectId))
 
     if (!snapshot.exists()) {
@@ -327,6 +330,7 @@ export const fetchProjectById = async (
 
 export const deleteProject = async (projectId: string): Promise<void> => {
   try {
+    assertFirebaseConfigured()
     await deleteDoc(doc(db, PROJECT_COLLECTION, projectId))
   } catch (error) {
     throw toReadableFirebaseError(error)

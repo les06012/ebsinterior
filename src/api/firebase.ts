@@ -13,22 +13,56 @@ const requiredFirebaseEnvKeys = [
   'VITE_FIREBASE_APP_ID',
 ] as const
 
-const missingFirebaseEnvKeys = requiredFirebaseEnvKeys.filter(key => !env[key])
+const normalizeEnvValue = (value: string | undefined) => {
+  const trimmedValue = value?.trim() ?? ''
 
-if (missingFirebaseEnvKeys.length > 0) {
-  throw new Error(
-    `Missing Firebase env: ${missingFirebaseEnvKeys.join(', ')}. Check your .env file.`,
-  )
+  if (
+    (trimmedValue.startsWith('"') && trimmedValue.endsWith('"')) ||
+    (trimmedValue.startsWith("'") && trimmedValue.endsWith("'"))
+  ) {
+    return trimmedValue.slice(1, -1).trim()
+  }
+
+  return trimmedValue
+}
+
+const firebaseEnv = {
+  VITE_FIREBASE_API_KEY: normalizeEnvValue(env.VITE_FIREBASE_API_KEY),
+  VITE_FIREBASE_AUTH_DOMAIN: normalizeEnvValue(env.VITE_FIREBASE_AUTH_DOMAIN),
+  VITE_FIREBASE_PROJECT_ID: normalizeEnvValue(env.VITE_FIREBASE_PROJECT_ID),
+  VITE_FIREBASE_STORAGE_BUCKET: normalizeEnvValue(env.VITE_FIREBASE_STORAGE_BUCKET),
+  VITE_FIREBASE_MESSAGING_SENDER_ID: normalizeEnvValue(env.VITE_FIREBASE_MESSAGING_SENDER_ID),
+  VITE_FIREBASE_APP_ID: normalizeEnvValue(env.VITE_FIREBASE_APP_ID),
+  VITE_FIREBASE_MEASUREMENT_ID: normalizeEnvValue(env.VITE_FIREBASE_MEASUREMENT_ID),
+}
+
+const missingFirebaseEnvKeys = requiredFirebaseEnvKeys.filter(
+  key => !firebaseEnv[key],
+)
+
+export const firebaseEnvErrorMessage =
+  missingFirebaseEnvKeys.length > 0
+    ? `Missing Firebase env: ${missingFirebaseEnvKeys.join(', ')}. In Netlify, add these as Site configuration > Environment variables.`
+    : null
+
+export const assertFirebaseConfigured = () => {
+  if (firebaseEnvErrorMessage) {
+    throw new Error(firebaseEnvErrorMessage)
+  }
 }
 
 export const firebaseConfig = {
-  apiKey: env.VITE_FIREBASE_API_KEY,
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: env.VITE_FIREBASE_APP_ID,
-  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID,
+  apiKey: firebaseEnv.VITE_FIREBASE_API_KEY || 'missing-firebase-api-key',
+  authDomain:
+    firebaseEnv.VITE_FIREBASE_AUTH_DOMAIN || 'missing-firebase-auth-domain',
+  projectId:
+    firebaseEnv.VITE_FIREBASE_PROJECT_ID || 'missing-firebase-project-id',
+  storageBucket:
+    firebaseEnv.VITE_FIREBASE_STORAGE_BUCKET || 'missing-firebase-storage-bucket',
+  messagingSenderId:
+    firebaseEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || 'missing-firebase-sender-id',
+  appId: firebaseEnv.VITE_FIREBASE_APP_ID || 'missing-firebase-app-id',
+  measurementId: firebaseEnv.VITE_FIREBASE_MEASUREMENT_ID || undefined,
 }
 
 const normalizeStorageBucket = (bucket: string) => {
