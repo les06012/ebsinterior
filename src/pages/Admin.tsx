@@ -2,7 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SectionTitle, cn } from '../components/Common';
 import { QAPost, Project } from '../types';
-import { PROJECTS, getProjects } from '../data/projects';
+import { deleteQAPost, fetchQAPosts, saveQAPost } from '../api/qa';
+import { deleteProject, fetchProjects, saveProject } from '../api/projects';
+import { AdminWriteProjectModal } from '../components/admin/AdminWriteProjectModal';
 import { motion, AnimatePresence, Reorder } from 'motion/react';
 import { Lock, Plus, Trash2, Image, MessageSquare, LogOut, X, GripVertical, Edit2, Settings, Eye, EyeOff, Search, Home, Tag } from 'lucide-react';
 
@@ -26,6 +28,9 @@ export const Admin = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isWritingProject, setIsWritingProject] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const [projectError, setProjectError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [selectedSubCategory, setSelectedSubCategory] = useState('전체');
   const [searchQuery, setSearchQuery] = useState('');
@@ -105,22 +110,59 @@ export const Admin = () => {
   const [qaPosts, setQaPosts] = useState<QAPost[]>([]);
   const [selectedPost, setSelectedPost] = useState<QAPost | null>(null);
   const [replyContent, setReplyContent] = useState('');
+  const [isLoadingQaPosts, setIsLoadingQaPosts] = useState(true);
+  const [isSavingQaPost, setIsSavingQaPost] = useState(false);
+  const [qaError, setQaError] = useState('');
 
   useEffect(() => {
-    // Check if already logged in (optional, but good for refresh)
     const adminSession = sessionStorage.getItem('isAdmin');
     if (adminSession === 'true') {
       setIsAdmin(true);
     }
+  }, []);
 
-    // Load Projects
-    setProjects(getProjects());
+  useEffect(() => {
+    const loadProjects = async () => {
+      setIsLoadingProjects(true);
+      setProjectError('');
 
-    // Load QA Posts
-    const savedQa = localStorage.getItem('qaPosts_v3');
-    if (savedQa) {
-      setQaPosts(JSON.parse(savedQa));
-    }
+      try {
+        const firestoreProjects = await fetchProjects();
+        setProjects(firestoreProjects);
+      } catch (error) {
+        setProjectError(
+          error instanceof Error
+            ? `프로젝트를 불러오지 못했습니다: ${error.message}`
+            : '프로젝트를 불러오지 못했습니다.',
+        );
+      } finally {
+        setIsLoadingProjects(false);
+      }
+    };
+
+    void loadProjects();
+  }, []);
+
+  useEffect(() => {
+    const loadQaPosts = async () => {
+      setIsLoadingQaPosts(true);
+      setQaError('');
+
+      try {
+        const firestorePosts = await fetchQAPosts();
+        setQaPosts(firestorePosts);
+      } catch (error) {
+        setQaError(
+          error instanceof Error
+            ? `문의글 조회에 실패했습니다: ${error.message}`
+            : '문의글 조회에 실패했습니다.',
+        );
+      } finally {
+        setIsLoadingQaPosts(false);
+      }
+    };
+
+    void loadQaPosts();
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -141,93 +183,58 @@ export const Admin = () => {
   };
 
   // Gallery Functions
-  const handleSaveProject = (newProject: Project) => {
-    const saved = localStorage.getItem('customProjects');
-    const currentCustom = saved ? JSON.parse(saved) : [];
-    
-    let updatedCustom;
-    if (editingProject) {
-      // Update existing project
-      // Check if it's a custom project or a default one
-      const isCustom = currentCustom.some((p: Project) => p.id === newProject.id);
-      
-      if (isCustom) {
-        updatedCustom = currentCustom.map((p: Project) => p.id === newProject.id ? newProject : p);
-      } else {
-        // If it's a default project being edited, we treat it as a new custom project but keep the ID?
-        // Or we should clone it. For simplicity, let's just add it to custom projects if not there.
-        // But wait, if we edit a default project, we need to override it in the display list.
-        // The simple strategy: `projects` state is the source of truth for display.
-        // We need to persist changes.
-        // If we edit a default project, we can't easily "update" it in the static file.
-        // So we might need to store "edited default projects" or just treat everything as custom once edited.
-        // Let's assume we just save everything to local storage for now to keep it simple, 
-        // but we need to filter out duplicates if we are merging.
-        
-        // Actually, the `projects` state is initialized from [...PROJECTS, ...customProjects].
-        // If we edit a project from `PROJECTS`, we should probably add it to `customProjects` and 
-        // when loading, we should prefer the custom version.
-        
-        // Let's simplify: If editing, update in `projects` state.
-        // And save the *entire* `projects` list to localStorage? No, that duplicates static data.
-        
-        // Better approach for this demo:
-        // 1. If ID exists in customProjects, update it there.
-        // 2. If ID exists in static PROJECTS, add it to customProjects (effectively overriding it if we handle the merge logic right).
-        // For now, let's just update the state and save the *custom* part.
-        
-        // To properly support editing default projects without a backend, we'd need a complex merge strategy.
-        // Let's assume we only fully support editing *custom* projects for persistence, 
-        // OR we just append the edited version to customProjects and ensuring the UI uses the latest one.
-        
-        // Let's go with: Update state, and if it's in customProjects, update localStorage.
-        // If it was a default project, we add it to customProjects.
-        
-        const existingIndex = currentCustom.findIndex((p: Project) => p.id === newProject.id);
-        if (existingIndex >= 0) {
-          updatedCustom = [...currentCustom];
-          updatedCustom[existingIndex] = newProject;
-        } else {
-          updatedCustom = [...currentCustom, newProject];
+  const handleSaveProject = async (newProject: Project) => {
+    setIsSavingProject(true);
+    setProjectError('');
+
+    try {
+      const savedProject = await saveProject(newProject);
+      setProjects(prevProjects => {
+        const exists = prevProjects.some(project => project.id === savedProject.id);
+        if (exists) {
+          return prevProjects.map(project =>
+            project.id === savedProject.id ? savedProject : project,
+          );
         }
-      }
-    } else {
-      // Create new
-      updatedCustom = [...currentCustom, newProject];
+        return [savedProject, ...prevProjects];
+      });
+
+      setIsWritingProject(false);
+      setEditingProject(null);
+      alert(editingProject ? '프로젝트가 수정되었습니다.' : '프로젝트가 등록되었습니다.');
+    } catch (error) {
+      setProjectError(
+        error instanceof Error
+          ? `프로젝트 저장에 실패했습니다: ${error.message}`
+          : '프로젝트 저장에 실패했습니다.',
+      );
+      alert('프로젝트 저장에 실패했습니다.');
+    } finally {
+      setIsSavingProject(false);
     }
-
-    localStorage.setItem('customProjects', JSON.stringify(updatedCustom));
-    
-    // Update state using getProjects to ensure consistency
-    setProjects(getProjects());
-
-    setIsWritingProject(false);
-    setEditingProject(null);
-    alert(editingProject ? '프로젝트가 수정되었습니다.' : '프로젝트가 등록되었습니다.');
   };
 
-  const handleDeleteProject = (e: React.MouseEvent, id: string) => {
+  const handleDeleteProject = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (window.confirm('정말 삭제하시겠습니까?')) {
-      // Add to deletedProjects to prevent static projects from reappearing
-      const savedDeleted = localStorage.getItem('deletedProjects');
-      const deletedProjects = savedDeleted ? JSON.parse(savedDeleted) : [];
-      if (!deletedProjects.includes(id)) {
-        deletedProjects.push(id);
-        localStorage.setItem('deletedProjects', JSON.stringify(deletedProjects));
-      }
+      setProjectError('');
 
-      // Remove from customProjects if it's there
-      const saved = localStorage.getItem('customProjects');
-      if (saved) {
-        const currentCustom = JSON.parse(saved);
-        const updatedCustom = currentCustom.filter((p: Project) => p.id !== id);
-        localStorage.setItem('customProjects', JSON.stringify(updatedCustom));
+      try {
+        await deleteProject(id);
+        setProjects(prevProjects => prevProjects.filter(project => project.id !== id));
+        if (editingProject?.id === id) {
+          setEditingProject(null);
+          setIsWritingProject(false);
+        }
+        alert('프로젝트가 삭제되었습니다.');
+      } catch (error) {
+        setProjectError(
+          error instanceof Error
+            ? `프로젝트 삭제에 실패했습니다: ${error.message}`
+            : '프로젝트 삭제에 실패했습니다.',
+        );
+        alert('프로젝트 삭제에 실패했습니다.');
       }
-
-      // Update state
-      setProjects(getProjects());
-      alert('프로젝트가 삭제되었습니다.');
     }
   };
 
@@ -262,37 +269,70 @@ export const Admin = () => {
   };
 
   // QA Functions
-  const handleReply = (id: number, reply: string) => {
+  const handleReply = async (id: number, reply: string) => {
+    const trimmedReply = reply.trim();
+    if (!trimmedReply) return;
+
+    const targetPost = qaPosts.find(post => post.id === id);
+    if (!targetPost) {
+      setQaError('답변할 문의글을 찾을 수 없습니다.');
+      return;
+    }
+
     const today = new Date().toISOString().split('T')[0];
-    const updatedPosts = qaPosts.map(post => {
-      if (post.id === id) {
-        const newReply = {
+    const updatedPost: QAPost = {
+      ...targetPost,
+      status: '답변완료',
+      replies: [
+        ...(targetPost.replies || []),
+        {
           id: `reply-${Date.now()}`,
-          author: 'admin' as const,
-          content: reply,
-          date: today
-        };
-        return { 
-          ...post, 
-          status: '답변완료' as const,
-          replies: [...(post.replies || []), newReply]
-        };
-      }
-      return post;
-    });
-    setQaPosts(updatedPosts);
-    localStorage.setItem('qaPosts_v3', JSON.stringify(updatedPosts));
-    setSelectedPost(updatedPosts.find(p => p.id === id) || null);
-    setReplyContent('');
-    alert('답변이 등록되었습니다.');
+          author: 'admin',
+          content: trimmedReply,
+          date: today,
+        },
+      ],
+    };
+
+    setIsSavingQaPost(true);
+    setQaError('');
+
+    try {
+      const savedPost = await saveQAPost(updatedPost);
+      setQaPosts(prevPosts =>
+        prevPosts.map(post => (post.id === savedPost.id ? savedPost : post)),
+      );
+      setSelectedPost(savedPost);
+      setReplyContent('');
+      alert('답변이 등록되었습니다.');
+    } catch (error) {
+      setQaError(
+        error instanceof Error
+          ? `답변 등록에 실패했습니다: ${error.message}`
+          : '답변 등록에 실패했습니다.',
+      );
+      alert('답변 등록에 실패했습니다.');
+    } finally {
+      setIsSavingQaPost(false);
+    }
   };
 
-  const handleDeletePost = (id: number) => {
+  const handleDeletePost = async (id: number) => {
     if (window.confirm('정말 삭제하시겠습니까?')) {
-      const updatedPosts = qaPosts.filter(p => p.id !== id);
-      setQaPosts(updatedPosts);
-      localStorage.setItem('qaPosts_v3', JSON.stringify(updatedPosts));
-      if (selectedPost?.id === id) setSelectedPost(null);
+      setQaError('');
+
+      try {
+        await deleteQAPost(id);
+        setQaPosts(prevPosts => prevPosts.filter(post => post.id !== id));
+        if (selectedPost?.id === id) setSelectedPost(null);
+      } catch (error) {
+        setQaError(
+          error instanceof Error
+            ? `문의글 삭제에 실패했습니다: ${error.message}`
+            : '문의글 삭제에 실패했습니다.',
+        );
+        alert('문의글 삭제에 실패했습니다.');
+      }
     }
   };
 
@@ -434,6 +474,12 @@ export const Admin = () => {
                 </div>
               </div>
 
+              {projectError && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {projectError}
+                </div>
+              )}
+
               {/* Category Filter */}
               <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap gap-2">
@@ -496,7 +542,15 @@ export const Admin = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-sage-100">
-                      {filteredProjects.map((p) => (
+                      {isLoadingProjects ? (
+                        <tr>
+                          <td colSpan={6} className="p-12 text-center text-sage-400">Firestore에서 프로젝트를 불러오는 중입니다.</td>
+                        </tr>
+                      ) : filteredProjects.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-12 text-center text-sage-400">등록된 프로젝트가 없습니다.</td>
+                        </tr>
+                      ) : filteredProjects.map((p) => (
                         <tr 
                           key={p.id} 
                           className="hover:bg-sage-50/60 transition-colors group cursor-pointer"
@@ -533,7 +587,15 @@ export const Admin = () => {
 
                 {/* Mobile Grid View */}
                 <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
-                  {filteredProjects.map((p) => (
+                  {isLoadingProjects ? (
+                    <div className="col-span-full py-12 text-center text-sage-400">
+                      Firestore에서 프로젝트를 불러오는 중입니다.
+                    </div>
+                  ) : filteredProjects.length === 0 ? (
+                    <div className="col-span-full py-12 text-center text-sage-400">
+                      등록된 프로젝트가 없습니다.
+                    </div>
+                  ) : filteredProjects.map((p) => (
                     <div 
                       key={p.id} 
                       className="bg-white rounded-xl overflow-hidden border border-sage-200 shadow-sm cursor-pointer"
@@ -575,6 +637,12 @@ export const Admin = () => {
               className="space-y-6"
             >
               <h2 className="text-lg md:text-2xl font-bold text-sage-900 whitespace-nowrap">문의글 목록</h2>
+
+              {qaError && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {qaError}
+                </div>
+              )}
               
               <div className="bg-white rounded-2xl shadow-sm border border-sage-100 overflow-hidden overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[600px]">
@@ -589,7 +657,11 @@ export const Admin = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-sage-100">
-                    {qaPosts.length === 0 ? (
+                    {isLoadingQaPosts ? (
+                      <tr>
+                        <td colSpan={6} className="p-12 text-center text-sage-400">Firestore에서 문의글을 불러오는 중입니다.</td>
+                      </tr>
+                    ) : qaPosts.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="p-12 text-center text-sage-400">등록된 문의글이 없습니다.</td>
                       </tr>
@@ -846,15 +918,17 @@ export const Admin = () => {
       {/* Write Project Modal */}
       <AnimatePresence>
         {isWritingProject && (
-          <WritePostModal 
+          <AdminWriteProjectModal 
             onClose={() => {
               setIsWritingProject(false);
               setEditingProject(null);
             }} 
             onSave={handleSaveProject} 
-            categories={categories.filter(c => c !== '전체')}
+            categories={categories.filter(
+              (category): category is Project['category'] => category !== '전체',
+            )}
             initialData={editingProject}
-            existingSubCategories={availableSubCategories.filter(sub => sub !== '전체')}
+            isSubmitting={isSavingProject}
           />
         )}
       </AnimatePresence>
@@ -931,9 +1005,10 @@ export const Admin = () => {
                     <div className="flex justify-end">
                       <button 
                         type="submit" 
+                        disabled={isSavingQaPost}
                         className="px-4 py-2 bg-sage-800 text-white text-sm font-bold rounded-lg hover:bg-sage-900"
                       >
-                        답변 등록
+                        {isSavingQaPost ? '등록 중...' : '답변 등록'}
                       </button>
                     </div>
                   </form>
